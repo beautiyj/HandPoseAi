@@ -1,0 +1,59 @@
+[ 프로젝트 구조 ]
+
+HandPoseAi/
+├── core/                         # [Project Root] Django 프로젝트 전체 설정
+│   ├── settings.py               # DB, 앱 등록, Static 경로, AI 모델 경로 등 모든 설정
+│   ├── urls.py                   # 최상위 URL 설계 (apps.tracker.urls로 연결)
+│   └── wsgi.py / asgi.py         # 웹 서버 배포 시 사용하는 인터페이스
+│
+├── apps/                         # [Apps Container] 서비스 앱들을 모아둔 폴더 (확장성)
+│   └── tracker/                  # 손가락 인식 및 데이터 처리를 담당하는 핵심 앱
+│       ├── __init__.py           # 파이썬 패키지 인식용 빈 파일
+│       ├── apps.py               # 앱 이름 설정 (name = 'apps.tracker')
+│       ├── models.py             # [Model] 손가락 21개 좌표(JSONField)를 저장하는 DB 설계
+│       ├── views.py              # [View] 요청을 받아 Service를 호출하고 응답을 반환
+│       ├── urls.py               # 앱 단위 URL 라우팅 (예: /api/pose/save/)
+│       ├── serializers.py        # [DRF] DB 데이터를 JSON으로 변환하거나 검증 (규격화)
+│       │
+│       ├── services/             # [Business Logic] 백엔드의 꽃! 핵심 로직 분리
+│       │   ├── __init__.py
+│       │   ├── hand_analyzer.py  # MediaPipe 호출 및 랜드마크 추출 엔진
+│       │   └── pose_converter.py # 추출된 좌표를 3D 관절 회전값(수학)으로 변환하는 엔진
+│       │
+│       ├── ai_models/            # [AI Assets] .tflite 등 오프라인용 AI 모델 보관 (필요 시)
+│       └── migrations/           # DB 변경 이력 관리 폴더
+│
+├── static/                       # [Static Files] 프론트엔드 자원 (엔진들)
+│   ├── css/                      # 웹 스타일 시트
+│   └── js/                       # 온디바이스 AI 및 3D 구현 핵심 스크립트
+│       ├── hand_ai.js            # MediaPipe 실행 및 브라우저 추론 로직
+│       └── scene_renderer.js     # Three.js 3D 모델 렌더링 및 관절 조종 로직
+│
+├── templates/                    # [UI] 사용자에게 보여질 HTML 화면
+│   └── tracker/
+│       └── index.html            # 웹캠/사진 업로드 및 3D 모델이 보일 메인 페이지
+│
+├── tests/                        # [Test] 작성한 로직(수학 연산 등) 검증용 코드
+├── .gitignore                    # Git 관리 제외 목록 (venv, __pycache__, .env 등)
+├── requirements.txt              # 프로젝트 설치 라이브러리 목록 (장부)
+├── manage.py                     # [Controller] Django 실행 및 관리용 파일
+└── README.md                     # [Portfolio Face] 프로젝트 소개 및 기술 스택 설명서
+
+
+서버 ai 방식이 아닌 클라이언트 중심의 온디바이스 ai 구조로 진행 예정.
+백엔드 중점은 서버 형태지만 온디바이스 형태가 속도부터 서버비용, 편리함 등등 ux면으로 편하고 보안도 챙김
+
+대신 백엔드로는
+1. 데이터 구조 설계 (Data Architecture)
+MediaPipe가 뱉어낸 21개의 복잡한 좌표 데이터를 어떻게 효율적으로 DB에 저장하고 관리할 것인가?
+3D 포즈를 재현하기 위한 JSON 규격 설계 능력을 보여줄 수 있습니다.
+
+2. 비즈니스 로직의 API화
+사용자가 만든 포즈를 저장, 수정, 공유하는 REST API를 탄탄하게 구축합니다.
+클라이언트에서 계산된 결과값이 유효한지 검증(Validation)하는 로직을 서버에 배치하여 데이터 신뢰성을 확보합니다.
+
+3. 결과물 관리 (Storage & Serving)
+수많은 사용자의 포즈 데이터를 빠르게 조회하기 위한 인덱싱 처리나, 통계 데이터를 뽑아내는 쿼리 최적화 실력을 보여줍니다.
+
+위주로 진행, "AI 연산은 온디바이스로 처리하여 성능을 극대화하고,
+백엔드(Django)는 이 데이터를 체계적으로 관리하고 서비스화하는 API Hub 역할을 수행하도록 설계했습니다."
