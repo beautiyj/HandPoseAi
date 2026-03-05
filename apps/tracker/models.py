@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
+# 순서 1. models.py에 클래스(테이블)과 그 안의 필드(열)을 생성한다. 그다음 admin.py로 이동
+
 # 소셜로그인 사용자 테이블
 class SocialAccount(models.Model):
     user = models.OneToOneField(
@@ -20,6 +23,16 @@ class SocialAccount(models.Model):
         max_length=255,
         unique=True,
     )
+
+    created_at = models.DateTimeField(
+        verbose_name="가입 일시",
+        auto_now_add=True  # 가입 일자
+    )
+
+    class Meta:
+        verbose_name = "소셜 로그인 사용자"
+        verbose_name_plural = "소셜 로그인 사용자 목록"
+        ordering = ["-created_at"]
 
     def __str__(self):
         # 아이디를 등록하지 않은 소셜로그인 사용자의 경우
@@ -89,9 +102,9 @@ class HandPose(models.Model):
     class Meta:
         verbose_name = "손동작 데이터"
         verbose_name_plural = "손동작 데이터 목록"
-        ordering = ["-created_at"]  #최신순 정렬
+        ordering = ["-created_at"]  # 최신순 정렬
 
     def __str__(self):
         name = self.pose_name or '미분류 포즈'
-        source = self.get_source_choice_display()   # 튜플 내의 대칭값으로 출력해주는 장고 메소드 get_필드명_display()
+        source = self.get_source_choice_display()  # 튜플 내의 대칭값으로 출력해주는 장고 메소드 get_필드명_display()
         return f"[{source}] {name} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
