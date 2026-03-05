@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Pose AI - Motion Capture</title>
+    <style>
+
+        /* 0305 기존 디자인 없이 큰 틀만 잡아둠, 피그마 템플릿 활용
+        # 손동작 ai엔진 테스트 후 index.html 틀만 잡아둠 -> views.py 이동
+        */
+
+        /* 기본 레이아웃 틀 */
+        body { margin: 0; font-family: sans-serif; overflow-x: hidden; }
+        nav { padding: 20px; display: flex; justify-content: space-between; border-bottom: 2px solid #000; }
+
+        /* 반반 레이아웃 (데스크탑: 가로, 모바일: 세로) */
+        .container { display: flex; flex-wrap: wrap; height: calc(100vh - 80px); }
+
+        /* 섹션 1: 웹캠 (브라우저 1:1 비율 지향) */
+        .camera-section {
+            flex: 1; min-width: 300px; background: #f4f4f4;
+            display: flex; align-items: center; justify-content: center; position: relative;
+        }
+
+        /* 섹션 2: 3D 모델링 (모바일에서 더 크게) */
+        .model-section {
+            flex: 1; min-width: 300px; background: #e0d5b0; /* 이미지의 베이지색 느낌 */
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        /* 반응형 설정: 모바일일 때 3D 섹션을 더 크게 */
+        @media (max-width: 768px) {
+            .camera-section { order: 2; flex: 0.8; }
+            .model-section { order: 1; flex: 1.2; }
+        }
+
+        /* 3가지 선택지 버튼 스타일 */
+        .options { padding: 40px; display: flex; gap: 20px; border-top: 2px solid #000; }
+        .option-btn { border: 2px solid #000; padding: 10px 20px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        .option-btn:hover { background: #000; color: #fff; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div style="font-size: 2rem; font-weight: 900;">HAND AI</div>
+    <div style="display: flex; gap: 20px; align-items: center;">
+        <span>ABOUT</span>
+        <span>CONTACT</span>
+        <button class="option-btn" style="padding: 5px 15px;">SHOP NOW</button>
+    </div>
+</nav>
+
+<main class="container">
+    <section class="camera-section">
+        <div style="width: 90%; aspect-ratio: 1/1; background: #000; display: flex; align-items: center; justify-content: center; color: white;">
+            [ WEBCAM FEED : 1:1 ]
+            </div>
+    </section>
+
+    <section class="model-section">
+        <h2 style="font-size: 3rem; margin-bottom: 20px;">3D MODEL</h2>
+        <div id="three-container" style="width: 80%; height: 60%; border: 2px solid #000;">
+            </div>
+    </section>
+</main>
+
+<div class="options">
+    <div class="option-btn">01. RECORD POSE</div>
+    <div class="option-btn">02. ANALYZE MOTION</div>
+    <div class="option-btn">03. EXPORT 3D</div>
+</div>
+
+</body>
+</html>
