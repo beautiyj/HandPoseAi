@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'apps.tracker',
+    'apps.common'   # 0306 모듈생성하면서 추가
 ]
 
 MIDDLEWARE = [
