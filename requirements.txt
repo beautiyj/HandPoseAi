@@ -12,7 +12,7 @@ mediapipe==0.10.32
 numpy==2.2.6
 opencv-contrib-python==4.13.0.92
 opencv-python==4.13.0.92
-packaging @ file:///C:/miniconda3/conda-bld/packaging_1761049101700/work
+# packaging @ file:///C:/miniconda3/conda-bld/packaging_1761049101700/work
 pillow==12.1.1
 pycparser==3.0
 pyparsing==3.3.2

@@ -1,0 +1,89 @@
+
+=========================================================================================================================
+
+
+# views.py
+
+    뷰 서식은
+    def 함수명(request매개변수, (필요시 매개변수추가),...):
+        return render(request, 'tracker/index.html', {'매개변수키':매개변수밸루} 추가한매개변수는 딕셔너리값으로써야함.)
+    이제 기본홈의경우는 path('', views.index, name='index'), 로 경로추가하면됨. 특정매개변수없을경우 기본은 이 상태.
+
+<<*** 예시 ***>>>
+        # views.py
+        def user_pose_list(request, user_id):
+            # 비즈니스 로직 작성...
+            return render(request, 'tracker/user_poses.html', {'user_id': user_id})
+        # urls.py
+        path('user/<int:user_id>/', views.user_pose_list, name='user_detail'),  #매개변수포함경로의경우, 특정사용자 데이터가있는 페이지로.
+
+        def analyze_pose(request):
+            # 지역변수를 넣어도
+            finger_angles = [45.5, 30.2, 10.0, ... , 5.5]
+            pose_data = {
+                'thumb': 45.0,
+                'index': 30.5,
+                'middle': 10.2,
+            }
+            return render(request, 'tracker/result.html', {
+            'angles': finger_angles, # 지역변수 역시 딕셔너리로 전달해야함
+            'pose': pose_data
+            })
+            이건 경로에 path('analyze/', views.analyze_pose, name='analyze'), 매개변수가없으니 데이터만이동
+
+<<*** 예시 ***>>>
+        # core/urls.py
+            from django.contrib import admin
+            from django.urls import path, include
+            from apps.tracker import views  # 직접 연결할 땐 view 임포트 필요
+
+            urlpatterns = [
+                # 1. 관리자 페이지 (장고 기본 제공)
+                path('admin/', admin.site.urls),
+                # 2. 직접 연결 방식 (매개변수 없음)
+                # 앱 urls를 거치지 않고 코어에서 바로 views.py로 꽂아버립니다.
+                path('analyze/', views.analyze_pose, name='analyze'),
+                # 3. 직접 연결 방식 (매개변수 포함)
+                # 안드로이드의 딥링크처럼 코어에서 직접 ID를 받도록 설정합니다.
+                path('user/<int:user_id>/', views.user_pose_list, name='user_detail'),
+
+                # 4. 앱 단위 위임 방식 (권장 서식) -> 보통은 이 방식을 사용한다. 어차피 앱트래커 경로에 다 적어두었으니 그 경로 한줄만 쓰면 끝!
+                # tracker로 시작하는 모든 주소는 tracker 앱의 urls.py가 관리하게 던져줍니다.
+                path('tracker/', include('apps.tracker.urls')),
+            ]
+
+=========================================================================================================================
+
+
+# core/urls.py 의 기본 설명 번역
+        """
+        URL configuration for core project.
+
+        The `urlpatterns` list routes URLs to views. For more information please see:
+            https://docs.djangoproject.com/en/5.2/topics/http/urls/
+        Examples:
+        Function views
+            1. Add an import:  from my_app import views
+            2. Add a URL to urlpatterns:  path('', views.home, name='home')
+        Class-based views
+            1. Add an import:  from other_app.views import Home
+            2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+        Including another URLconf
+            1. Import the include() function: from django.urls import include, path
+            2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+
+        Core 프로젝트를 위한 URL 환경 설정
+        urlpatterns 리스트는 URL 주소를 우리가 만든 뷰(View) 함수로 연결해줍니다.
+
+        1. 함수 기반 뷰 (Function views)
+        먼저 앱에서 만든 views를 불러오세요: from my_app import views
+        urlpatterns에 경로를 추가하세요: path('', views.home, name='home')
+
+        2. 클래스 기반 뷰 (Class-based views)
+        다른 앱의 views에서 클래스를 불러오세요: from other_app.views import Home
+        경로를 추가하세요: path('', Home.as_view(), name='home')
+
+        3. 다른 URL 설정 포함하기 (Including another URLconf)
+        include() 함수를 불러오세요: from django.urls import include, path
+        경로를 추가하세요: path('blog/', include('blog.urls'))
+        """

@@ -17,5 +17,8 @@ venv/
 
 # 기타
 .DS_Store
+
+#공부용으로 메모해둔 거
 memo.txt
 about.txt
+ex.txt
