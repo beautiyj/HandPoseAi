@@ -1,5 +1,5 @@
 from django.urls import path
-from apps.tracker import views
+from web.apps.tracker import views
 
 # ex.txt에 자세히 저구어둠. 여기에 경로 다 연결하고 나중에 코어경로는 path('tracker/', include('apps.tracker.urls')), 한줄이면 됨!!
 

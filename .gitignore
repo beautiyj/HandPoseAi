@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 .env
-db.sqlite3
+web/db.sqlite3
 # db.sqlite3 은 추후 Fixtures 기능으로 일부데이터만 JSON에 올려두기
 
 # 파이참 설정 파일 (내 컴퓨터 설정이라 올리면 안 됨)
