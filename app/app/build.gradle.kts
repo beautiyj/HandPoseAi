@@ -50,6 +50,14 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(project(":domain"))
     implementation(project(":data"))
+
+    // 카메라 라이브러리
+    val camerax_version = "1.3.4"
+    implementation("androidx.camera:camera-core:${camerax_version}")
+    implementation("androidx.camera:camera-camera2:${camerax_version}")
+    implementation("androidx.camera:camera-lifecycle:${camerax_version}")
+    implementation("androidx.camera:camera-view:${camerax_version}")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
