@@ -1,0 +1,95 @@
+프로젝트 app 버전 구조
+HandPoseAi/
+├── common/             # [공통] 유틸리티, 전역 상수 (utils, constants)
+├── domain/             # [설계] 순수 로직 (Model, Repository Interface, UseCase)
+│   └── usecase/AnalyzeHandUseCase.kt  <-- 포지션의 핵심!
+├── data/               # [구현] 데이터 소스
+                        # (Mediapipe, Room, Retrofit, RepositoryImpl)
+│   ├── mediapipe/HandLandmarkerHelper.kt
+│   └── local/HandDatabase.kt
+└── app/                # [전시] UI 레이어
+                        # (MainActivity, ViewModels, Composable UI)
+    ├── viewmodel/MainViewModel.kt
+    └── ui/CameraPreviewScreen.kt
+
+
+=========================================================================
+
+< 안드로이드 프로젝트 작업 순서 >
+build.gradle.kts (All Modules): 의존성 및 멀티모듈 설정 (장고의 settings.py)
+domain/model/: 데이터 규격 정의 (장고의 models.py)
+data/source/: DB(Room) 또는 API(Retrofit) 또는 AI Helper 초기화
+domain/repository/: 인터페이스 선언 (설계도)
+data/repository/: 실제 데이터 로직 구현 (구현체)
+domain/usecase/: 핵심 비즈니스 로직 작성
+app/viewmodel/: UI 상태 정의 및 UseCase 연결
+app/ui/: Compose로 화면 그리기 (최종 연결)
+
+장고(Django) 프로젝트에서
+models.py → serializers.py → views.py → urls.py → templates 순으로 작업
+안드로이드 프로젝트에서는
+data -> domain -> ui 순 작업
+
+=========================================================================
+
+1단계: Data Layer (재료 준비 및 엔진 조립)
+어디서 데이터를 가져올까?를 먼저 결정
+    Library & Assets: build.gradle.kts에 라이브러리 추가,
+                      assets에 모델 파일(MediaPipe 등) 넣기.
+
+    Local/Remote Source:  *Room DB: Entity(테이블), DAO(쿼리) 정의.
+                          (장고의 models.py)
+                Retrofit: ApiService 인터페이스 정의. (외부 API 규격)
+    Special Helper: HandLandmarkerHelper.kt 같은 외부 라이브러리 제어 클래스 작성.
+    Repository Implementation: 실제 데이터를 가공해서 넘겨줄 '구현체' 만들기.
+
+2단계: Domain Layer (설계도 및 비즈니스 로직)
+프레임워크나 라이브러리에 의존하지 않는 순수한 로직만 담기.
+    Domain Model: UI에서 사용할 순수한 데이터 클래스 정의.
+                  (장고의 serializers.py 결과물 격)
+
+    Repository Interface: "데이터 모듈아, 이런 함수는 꼭 만들어야 해"라고 약속하는 추상화 단계.
+    UseCase: "손동작 분석하기", "포즈 저장하기" 등 유저가 실행할 기능 단위로 쪼개서 작성.
+    이게 있어야 포트폴리오에서 "로직을 객체지향적으로 분리했다"는 평가를 받습니다.
+
+3단계: Presentation Layer (사용자 인터페이스)
+드디어 유저 눈에 보이는 것을 만듭니다. MVVM 패턴이 여기서 빛을 발합니다.
+    ViewModel: UI 상태(State)를 관리하고 UseCase를 호출합니다.
+                (장고의 views.py 핵심 로직)
+                예: isLoading = true, handPoints = data
+    UI (Compose): @Composable 함수로 화면을 그립니다. (장고의 templates)
+        MainActivity에서 시작하여 각 스크린(CameraScreen, ResultScreen)으로 나눕니다.
+     State Mapping: ViewModel의 상태를 UI에 연결(Collect)합니다.
+
+HandPoseAi/
+├── common/ (Module)              # [Shared] 전역 공통 도구
+│   └── src/main/java/.../common/
+│       ├── utils/                # 확장 함수, 로그 헬퍼
+│       └── constants/            # API Base URL, DB 이름 등 (장고의 settings.py 상수)
+│
+├── domain/ (Module)              # [Pure Logic] 비즈니스 설계도 (의존성 없음)
+│   └── src/main/java/.../domain/
+│       ├── model/                # [2단계] 순수 데이터 클래스 (HandPoseData.kt)
+│       ├── repository/           # [2단계] 인터페이스 (HandRepository.kt)
+│       └── usecase/              # [2단계] 기능 단위 (AnalyzeHandUseCase.kt)
+│
+├── data/ (Module)                # [Implementation] 데이터 소스 및 구현 (Domain 참조)
+│   ├── src/main/assets/          # [1단계] AI 모델 (hand_landmarker.task)
+│   └── src/main/java/.../data/
+│       ├── local/                # [1단계] 내장 DB (Room)
+│       │   ├── dao/              # 인터페이스 (HandDao.kt)
+│       │   ├── entity/           # 테이블 정의 (HandEntity.kt)
+│       │   └── HandDatabase.kt   # DB 설정
+│       ├── remote/               # [1단계] 외부 서버 (Retrofit)
+│       │   ├── api/              # API 규격 (ApiService.kt)
+│       │   └── model/            # 서버용 DTO (HandResponse.kt)
+│       ├── mediapipe/            # [1단계] AI 엔진 (HandLandmarkerHelper.kt)
+│       └── repository/           # [1단계] 통합 구현체 (HandRepositoryImpl.kt)
+│
+└── app/ (Module)                 # [UI/Presentation] 화면 및 상태 (모든 모듈 참조)
+    └── src/main/java/.../handpose/
+        ├── viewmodel/            # [3단계] UI 상태 및 로직 중계 (MainViewModel.kt)
+        ├── ui/                   # [3단계] Compose 화면
+        │   ├── CameraScreen.kt   # 메인 카메라 화면
+        │   └── ResultScreen.kt   # 분석 결과 화면
+        └── MainActivity.kt       # 앱의 진입점 (Scaffold, 권한 체크)

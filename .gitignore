@@ -1,4 +1,6 @@
-# Python 관련
+# web Django 관련
+
+#Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -6,14 +8,51 @@ __pycache__/
 web/db.sqlite3
 # db.sqlite3 은 추후 Fixtures 기능으로 일부데이터만 JSON에 올려두기
 
-# 파이참 설정 파일 (내 컴퓨터 설정이라 올리면 안 됨)
-.idea/
-
 # 가상환경 및 아나콘다
 .venv/
 env/
 venv/
 .conda/
+
+# ====================================================
+
+# Android 관련
+
+# 빌드 결과물 및 임시 파일
+**/build/
+**/.gradle/
+
+# 내 컴퓨터의 안드로이드 SDK 경로 (내 컴퓨터 설정이라 올리면 안 됨)
+**/local.properties
+
+# C++ 빌드 캐시 및 내비게이션 설정(+# 안드로이드 스튜디오가 만드는 기타 임시 파일)
+.cxx/
+.navigation/
+.externalNativeBuild/
+
+# 로그 및 캡처
+**/captures/
+**/*.log
+
+# 앱 배포용 서명 키(보안)
+*.keystore
+
+# ====================================================
+
+# 공통 보안 _ IDE 설정 및 임시 파일 등등
+
+# 파이참 & 안드로이드 스튜디오 설정 (내 화면 설정이라 올리면 안 됨)
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# 보안
+*secret.properties
+*keys.properties
+secrets.xml
+
+# ====================================================
 
 # 기타
 .DS_Store
@@ -22,3 +61,6 @@ venv/
 memo.txt
 about.txt
 ex.txt
+and_memo.txt
+and_ex.txt
+and_about.txt

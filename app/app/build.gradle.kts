@@ -50,6 +50,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(project(":domain"))
     implementation(project(":data"))
+    implementation(project(":common"))
 
     // 카메라 라이브러리
     val camerax_version = "1.3.4"

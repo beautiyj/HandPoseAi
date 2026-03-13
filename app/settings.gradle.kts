@@ -26,3 +26,4 @@ rootProject.name = "HandPoseAi"
 include(":app")
 include(":domain")
 include(":data")
+include(":common")
