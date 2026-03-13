@@ -41,6 +41,9 @@ data -> domain -> ui 순 작업
                           (장고의 models.py)
                 Retrofit: ApiService 인터페이스 정의. (외부 API 규격)
     Special Helper: HandLandmarkerHelper.kt 같은 외부 라이브러리 제어 클래스 작성.
+    ㄴ 외부 라이브러리를 내 앱에 맞게 조정하는 단계. 데이터 소스 제어 역할.
+       일반적으로 쇼핑몰, 블로그처럼 저장된데이터가 필요하면 룸디비 먼저 설정하는데
+       현재는 ai엔진우선이라 룸디비는 이후에 생성 예정
     Repository Implementation: 실제 데이터를 가공해서 넘겨줄 '구현체' 만들기.
 
 2단계: Domain Layer (설계도 및 비즈니스 로직)
