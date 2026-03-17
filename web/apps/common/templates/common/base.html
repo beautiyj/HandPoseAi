@@ -1,10 +1,23 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Hand Pose AI - Motion Capture{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'common/css/layout.css' %}">
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
 
+    {% include "common/header.html" %}
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include "common/footer.html" %}
+
+    {% block extra_scripts %}{% endblock %}
 </body>
 </html>
