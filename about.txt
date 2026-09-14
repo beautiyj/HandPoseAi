@@ -1,0 +1,107 @@
+순서
+
+1. 프로젝트 먼저 생성 완료, 가상환경은 hand_ai 로 설정 완.
+파이참터미널은 자동완성이 없어서 cmder로 진행했고 cmder 별명 설정으로 접속하면 됨.
+
+cmder에 순서.
+1 가상환경설치완료 conda activate hand_ai
+       ㄴ 다른가상환경은 콘다 엑티 ( 이름 ) 가상환경명 다 다르게 할 수 있음
+
+2.cmder에서못읽을때는 (아나콘다 conda.exe 위치임) D:\Dev\Scripts\activate hand_ai 나올때는conda deactivate
+2-1. 귀찮아서 cmder에 alias별명 등록함
+    2-1-1. Cmder 설치 폴더 내 config\user_aliases.cmd 파일 메모장열기
+    2-1-2. hand_ai=D:\Dev\Scripts\activate hand_ai <<맨뒤에안하면 베이스로들어감 ca든 h든 별명은아무거나설정하기
+
+3. 폴더 위치로 가서 가상환경 키고 프로젝트 장고서버 시작하기.
+    C:\Users\admin\Downloads\cmder_V1.3.25
+    λ cd /d D:\Project_yun\HandPoseAi
+    D:\Project_yun\HandPoseAi (main -> origin)
+    λ hand_ai
+    D:\Project_yun\HandPoseAi (main -> origin)
+    (hand_ai) λ django-admin startproject core .  <<< 이제 manage.py와 core 폴더가 생성됨(=root)
+    그다음 python manage.py runserver
+
+4. ctrl+t 새로운창켜서 가상환경까지키고 데이터베이스생성하기
+    D:\Project_yun\HandPoseAi (main -> origin)
+    (hand_ai) λ python manage.py migrate
+
+5. 관리자계정생성
+    D:\Project_yun\HandPoseAi (main -> origin)
+    (hand_ai) λ python manage.py createsuperuser
+    Username (leave blank to use 'admin'): admin
+    Email address:          # 안써도됨
+    Password:               # 1111
+    Password (again):
+    This password is too short. It must contain at least 8 characters.
+    This password is too common.
+    This password is entirely numeric.
+    Bypass password validation and create user anyway? [y/N]: y     # y누르면 그냥생성됨
+    Superuser created successfully.
+
+6. 서버 종료 후 재시작해서 http://127.0.0.1:8000/admin/ 접속하면 로그인되는거확인가능
+
+7. 원하는 폴더(=app, 앱패키지) 생성하기. 스타트프로젝트와 달리 이제 스타트앱 (폴더명) 만 적어도 됨.
+    D:\Project_yun\HandPoseAi (main -> origin)
+    (hand_ai) λ python manage.py startapp tracker
+    apps는 일반폴더(=디렉토리)라서 mkdir apps 해도되고 직접만들어도 상관없음
+    대신 트래커 apps.py 에서 name은 apps.tracker로 변경해야함
+
+8. 루트패키지 core, 앱패키지 apps/tracker, 디렉토리 static, templates를 생성했고
+    core/setting.py 의 템플릿에 디렉토리의 경로 설정하기
+    템플릿엔 'DIRS': [BASE_DIR / 'templates'],  로 경로설정,
+    스태틱엔 STATICFILES_DIRS = [ BASE_DIR / 'static', ] 로 경로 설정,
+    인스톨_앱엔     'apps.tracker' 트레커앱패키지의 경로 설정하기.
+
+9. 트래커 모델파이에서 장고인식으로 못해서 파이썬인터프리터 "D:\Dev\envs\hand_ai\python.exe" 재설정완료 3.10
+
+10. 이제 앱패키지 트래커/모델.파이 에서 클래스생성하고 각 모델들 생성하면서 개발하면 됨
+
+++ models.py 를 건드릴 경우 무조건 python manage.py makemigrations -> python manage.py migrate 해야 런서버 적용됨.
+    ㄴ 그리고 마이그레이션 쌓인 건 지워도 됨, 안지워도 됨. 지우지 않으면 해당 버전으로 롤백 가능.(백업)
+
+    ===================================================================================================
+
+    기초 잡아둔 거 설정 완료하면 보통 M T V 순서로 코드 작성. 모델 -> 템플릿(HTML, 안드로이드의 뷰) -> 뷰 (안드로이드의 뷰모델, 세부항목정렬)
+    순서는 models.py 의 테이블 설정 -> admin.py 관리자페이지에서 보여줄 데이터 리스트 선별 ->
+    apps/services 패키지 생성 후 ai엔진테스트 파일 생성, -> 템플릿에 index.html 생성 ->
+    views.py에 세부규칙 지정(함수) -> views.py의 함수 기반으로 urls.py에 경로 지정 ->
+    core/urls.py 에 path('tracker/', include('apps.tracker.urls')) 한줄만 추가해주면 알아서 앱경로위치의 경로를 체크함!
+    앱경로에 쓰지않고 코어경로에 바로 써도 되지만 굳이 2곳에 같이 쓸 필요 없고 기능이 많은 경우는 인클루드사용해서 하나만 쓰기.
+
+    Model (models.py): DB 설계. (안드로이드의 Room Entity 정의)
+    Admin (admin.py): 관리자 페이지 등록. (DB에 데이터 잘 들어갔나 확인용 도구)
+    Engine (services/ai_engine.py): 손동작 분석 로직. (안드로이드의 UseCase나 Service 레이어)
+    Template (index.html): 화면 UI. (안드로이드의 activity_main.xml)
+    View (views.py): 비즈니스 로직 및 데이터 바인딩. (안드로이드의 ViewModel + Activity 로직)
+    App URL (앱이름/urls.py): 앱 내부 경로 지정. (특정 화면들로 가는 네비게이션 정의)
+    Core URL (core/urls.py): 프로젝트 전체의 이정표.
+
+    안드와 비교했을때
+
+    Model (models.py) <-> Room Entity / Data Class:
+    데이터를 저장할 테이블 구조를 설계하는 단계입니다.
+    안드로이드에서 SQLite나 Room DB를 쓸 때 데이터 테이블(Entity)을 정의하는 것과 똑같은 기초 공사입니다.
+
+    Admin (admin.py) <-> Database Inspector / Debug Tool:
+    DB에 데이터가 잘 쌓이고 있는지 눈으로 직접 확인하기 위한 관리자 페이지 설정입니다.
+    안드로이드 스튜디오에서 DB 내부를 들여다보는 도구와 비슷한 역할을 수행합니다.
+
+    Engine (services/ai_engine.py) <-> UseCase / Repository / Library:
+    미디어파이프를 이용한 손동작 분석처럼 순수한 계산 로직이 들어가는 레이어입니다.
+    안드로이드에서 비즈니스 로직을 처리하는 서비스나 유즈케이스 계층에 해당합니다.
+
+    Template (index.html) <-> activity_main.xml (Layout):
+    사용자에게 보여질 실제 화면 UI를 만드는 단계입니다.
+    안드로이드에서 XML 파일로 버튼이나 텍스트 뷰를 배치하는 작업과 완벽히 대칭됩니다.
+
+    View (views.py) <-> ViewModel + Activity Logic:
+    데이터를 가공하고 화면(HTML)에 꽂아주는 핵심 로직입니다.
+    안드로이드에서 뷰모델(VM)이 데이터를 처리하고 액티비티가 이를 UI에 바인딩하는 역할을 동시에 수행한다고 보시면 됩니다.
+
+    App URL (앱이름/urls.py) <-> Navigation Graph (Fragment 단위):
+    특정 앱 내부에서 화면들이 어떻게 전환될지 경로를 지정하는 단계입니다.
+    안드로이드에서 프래그먼트 간의 이동 경로를 설정하는 네비게이션 그래프와 비슷합니다.
+
+    Core URL (core/urls.py) <-> AndroidManifest.xml / Deep Link:
+    프로젝트 전체의 입구를 결정하는 이정표입니다.
+    안드로이드에서 앱의 진입점(Main Activity)을 설정하거나 외부 딥링크 주소를 정의하는 매니페스트 파일과 같은 역할을 합니다.
