@@ -16,7 +16,7 @@ class HandRepositoryImpl(
 
         // 1. AI 엔진으로부터 결과를 받을 리스너(콜백) 정의
         val listener = object : HandLandmarkerHelper.LandmarkerListener {
-            override fun onError(error: String) {
+            override fun onError(error: String, errorCode: Int) {
                 // 에러 발생 시 스트림 닫기 (장고의 500 Error 처리와 비슷)
                 close(Exception(error))
             }
