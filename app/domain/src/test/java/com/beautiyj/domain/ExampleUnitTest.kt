@@ -1,17 +1,50 @@
 package com.beautiyj.domain
 
+import com.beautiyj.domain.model.HandPoseData
+import com.beautiyj.domain.model.Landmark
+import com.beautiyj.domain.usecase.AnalyzeHandUseCase
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
-import org.junit.Assert.*
-
-/**
- * Example local unit test, which will execute on the development machine (host).
- *
- * See [testing documentation](http://d.android.com/tools/testing).
- */
 class ExampleUnitTest {
+    private val useCase = AnalyzeHandUseCase()
+
     @Test
-    fun addition_isCorrect() {
-        assertEquals(4, 2 + 2)
+    fun `analyzeLiveFrame_detects_open_palm`() {
+        val result = useCase.analyzeLiveFrame(listOf(buildHandPose(wristY = 0.8f, fingerTipOffset = -0.25f)))
+
+        assertEquals("Open Palm", result.gestureName)
+        assertTrue(result.confidence >= 0.9f)
+    }
+
+    @Test
+    fun `analyzeLiveFrame_detects_fist`() {
+        val result = useCase.analyzeLiveFrame(listOf(buildHandPose(wristY = 0.8f, fingerTipOffset = 0.25f)))
+
+        assertEquals("Fist", result.gestureName)
+        assertTrue(result.confidence >= 0.9f)
+    }
+
+    @Test
+    fun `analyzeLiveFrame_returns_empty_hand_when_no_pose`() {
+        val result = useCase.analyzeLiveFrame(emptyList())
+
+        assertEquals("손 인식 없음", result.gestureName)
+        assertEquals(0f, result.confidence)
+    }
+
+    private fun buildHandPose(wristY: Float, fingerTipOffset: Float): HandPoseData {
+        val landmarks = MutableList(21) { index ->
+            val isFingerTip = index == 8 || index == 12 || index == 16 || index == 20
+            val y = if (isFingerTip) wristY + fingerTipOffset else wristY + 0.12f + (index % 5) * 0.04f
+            Landmark(x = 0.5f + (index % 4) * 0.04f, y = y, z = 0f)
+        }
+
+        return HandPoseData(
+            landmarks = landmarks,
+            handedness = "Right",
+            score = 1.0f
+        )
     }
 }

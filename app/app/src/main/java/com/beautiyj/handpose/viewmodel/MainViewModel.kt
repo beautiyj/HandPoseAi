@@ -1,23 +1,57 @@
 package com.beautiyj.handpose.viewmodel
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.beautiyj.domain.model.HandPoseData
 import com.beautiyj.domain.usecase.AnalyzeHandUseCase
-
-// 메인 뷰모델, ui 상태 관리 역할 (뷰모델은 분석 결과를 상태로 바꾸는 역할, 비즈니스 로직은 ui는 몰라도 됨)
-// uiState: 화면에서 관리하는 상태 객체 - 제스처 명, 신뢰도, 설명, 처리 상태, 역할은 화면이 바뀌는 상태를 담는 용도
+import com.beautiyj.handpose.storage.PoseStorage
+import com.beautiyj.handpose.storage.SavedPoseRecord
 
 class MainViewModel(
+    context: Context,
     private val analyzeHandUseCase: AnalyzeHandUseCase = AnalyzeHandUseCase()
 ) {
+    private val poseStorage = PoseStorage(context)
+
     var uiState by mutableStateOf(HandUiState())
         private set
 
-    // 카메라 프레임으로 손 데이터 얻으면 -> 결과를 uiState에 반영
-    // 카메라 실시간 분석 결과를 화면 상태로 저장하는 용도
+    var customPoseName by mutableStateOf("")
+        private set
+
+    var savedPoses by mutableStateOf<List<SavedPoseRecord>>(emptyList())
+        private set
+
+    var currentHandPose by mutableStateOf<HandPoseData?>(null)
+        private set
+
+    init {
+        refreshSavedPoses()
+    }
+
+    fun updateCustomPoseName(name: String) {
+        customPoseName = name
+    }
+
+    fun refreshSavedPoses() {
+        savedPoses = poseStorage.loadPoses()
+    }
+
     fun analyzeCameraFrame(handPoses: List<HandPoseData>) {
+        if (handPoses.isEmpty()) {
+            uiState = uiState.copy(
+                gestureName = "손 인식 없음",
+                confidence = 0f,
+                description = "카메라에 손이 보이지 않습니다.",
+                isProcessing = false
+            )
+            currentHandPose = null
+            return
+        }
+
+        currentHandPose = handPoses.first()
         val result = analyzeHandUseCase.analyzeLiveFrame(handPoses)
         uiState = uiState.copy(
             gestureName = result.gestureName,
@@ -27,9 +61,18 @@ class MainViewModel(
         )
     }
 
-    // 사진 인식용 분석 결과를 받으면 -> uiState에 반영
-    // 사진 업로드 후 감지 결과를 화면에 넣는 용도
     fun analyzePhoto(handPoses: List<HandPoseData>) {
+        if (handPoses.isEmpty()) {
+            uiState = uiState.copy(
+                gestureName = "사진 인식 실패",
+                confidence = 0f,
+                description = "이미지에서 손을 찾지 못했습니다.",
+                isProcessing = false
+            )
+            return
+        }
+
+        currentHandPose = handPoses.first()
         val result = analyzeHandUseCase.analyzePhoto(handPoses)
         uiState = uiState.copy(
             gestureName = result.gestureName,
@@ -39,14 +82,34 @@ class MainViewModel(
         )
     }
 
-    // ui 상태 초기화
+    fun saveCurrentPose() {
+        val activeGesture = uiState.gestureName
+        if (activeGesture.isBlank() || activeGesture == "대기 중" || activeGesture == "손 인식 없음" || activeGesture == "감지 불가") {
+            return
+        }
+
+        val finalName = if (customPoseName.isBlank()) {
+            "Pose_${savedPoses.size + 1}"
+        } else {
+            customPoseName.trim()
+        }
+
+        poseStorage.savePose(finalName, activeGesture, uiState.confidence)
+        customPoseName = ""
+        refreshSavedPoses()
+    }
+
+    fun clearSavedPoses() {
+        poseStorage.clear()
+        refreshSavedPoses()
+    }
+
     fun reset() {
         uiState = HandUiState()
+        currentHandPose = null
     }
 }
 
-// 뷰모델 상태 담는 용도의 데이터 클래스
-// ui가 어떤 제스처를 보여줘야하는지 반영하는 용도
 data class HandUiState(
     val gestureName: String = "대기 중",
     val confidence: Float = 0f,
