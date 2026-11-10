@@ -9,23 +9,29 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.beautiyj.data.mediapipe.HandLandmarkerHelper
 import com.beautiyj.domain.model.HandPoseData
 import com.beautiyj.handpose.viewmodel.MainViewModel
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 // 카메라 화면 출력 & 제스처 표시 ui
@@ -108,15 +114,46 @@ fun CameraPreviewScreen(viewModel: MainViewModel) {
             }
         )
 
-        HandPose3DView(
+        CameraGuideOverlay()
+
+        HandPoseOverlay(
             poseData = viewModel.currentHandPose,
             gestureName = viewModel.uiState.gestureName,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            overlayLabel = "3D "
         )
 
         Text(
             text = "3D Pose Preview: ${viewModel.uiState.gestureName}\n${viewModel.uiState.description}",
             modifier = Modifier.align(Alignment.BottomStart)
+        )
+    }
+}
+
+@Composable
+fun CameraGuideOverlay() {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val insetX = size.width * 0.18f
+            val insetY = size.height * 0.2f
+            val rectWidth = size.width * 0.64f
+            val rectHeight = size.height * 0.6f
+
+            drawRoundRect(
+                color = Color(0xFF5EEAD4).copy(alpha = 0.55f),
+                topLeft = Offset(insetX, insetY),
+                size = Size(rectWidth, rectHeight),
+                cornerRadius = CornerRadius(28f, 28f),
+                style = Stroke(width = 4f)
+            )
+        }
+
+        Text(
+            text = "손을 사각형 안에 넣어주세요",
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.TopCenter)
         )
     }
 }

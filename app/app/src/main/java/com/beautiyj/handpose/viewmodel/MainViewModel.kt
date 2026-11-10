@@ -5,7 +5,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.beautiyj.domain.model.HandPoseData
+import com.beautiyj.domain.model.Landmark
 import com.beautiyj.domain.usecase.AnalyzeHandUseCase
+import com.beautiyj.handpose.storage.PoseFilterMode
+import com.beautiyj.handpose.storage.PoseSortMode
+import com.beautiyj.handpose.storage.PoseSourceType
 import com.beautiyj.handpose.storage.PoseStorage
 import com.beautiyj.handpose.storage.SavedPoseRecord
 
@@ -27,6 +31,18 @@ class MainViewModel(
     var currentHandPose by mutableStateOf<HandPoseData?>(null)
         private set
 
+    var poseQuery by mutableStateOf("")
+        private set
+
+    var poseSortMode by mutableStateOf(PoseSortMode.LATEST)
+        private set
+
+    var poseFilterMode by mutableStateOf(PoseFilterMode.ALL)
+        private set
+
+    var sourceType by mutableStateOf(PoseSourceType.LIVE)
+        private set
+
     init {
         refreshSavedPoses()
     }
@@ -35,11 +51,31 @@ class MainViewModel(
         customPoseName = name
     }
 
+    fun updatePoseQuery(query: String) {
+        poseQuery = query
+        refreshSavedPoses()
+    }
+
+    fun updatePoseSortMode(sortMode: PoseSortMode) {
+        poseSortMode = sortMode
+        refreshSavedPoses()
+    }
+
+    fun updatePoseFilterMode(filterMode: PoseFilterMode) {
+        poseFilterMode = filterMode
+        refreshSavedPoses()
+    }
+
     fun refreshSavedPoses() {
-        savedPoses = poseStorage.loadPoses()
+        savedPoses = poseStorage.loadPoses(
+            query = poseQuery,
+            sortMode = poseSortMode,
+            filterMode = poseFilterMode
+        )
     }
 
     fun analyzeCameraFrame(handPoses: List<HandPoseData>) {
+        sourceType = PoseSourceType.LIVE
         if (handPoses.isEmpty()) {
             uiState = uiState.copy(
                 gestureName = "손 인식 없음",
@@ -62,6 +98,7 @@ class MainViewModel(
     }
 
     fun analyzePhoto(handPoses: List<HandPoseData>) {
+        sourceType = PoseSourceType.PHOTO
         if (handPoses.isEmpty()) {
             uiState = uiState.copy(
                 gestureName = "사진 인식 실패",
@@ -82,10 +119,10 @@ class MainViewModel(
         )
     }
 
-    fun saveCurrentPose() {
+    fun saveCurrentPose(thumbnail: String? = null, metadata: String = ""): Boolean {
         val activeGesture = uiState.gestureName
         if (activeGesture.isBlank() || activeGesture == "대기 중" || activeGesture == "손 인식 없음" || activeGesture == "감지 불가") {
-            return
+            return false
         }
 
         val finalName = if (customPoseName.isBlank()) {
@@ -94,9 +131,44 @@ class MainViewModel(
             customPoseName.trim()
         }
 
-        poseStorage.savePose(finalName, activeGesture, uiState.confidence)
-        customPoseName = ""
-        refreshSavedPoses()
+        val saved = poseStorage.savePose(
+            name = finalName,
+            gesture = activeGesture,
+            confidence = uiState.confidence,
+            sourceType = sourceType,
+            thumbnail = thumbnail,
+            metadata = metadata,
+            landmarksJson = currentHandPose?.let { serializeLandmarks(it) }
+        )
+        if (saved) {
+            customPoseName = ""
+            refreshSavedPoses()
+        }
+        return saved
+    }
+
+    fun deletePose(id: Long): Boolean {
+        val ok = poseStorage.deletePose(id)
+        if (ok) refreshSavedPoses()
+        return ok
+    }
+
+    fun updatePoseName(id: Long, name: String): Boolean {
+        val ok = poseStorage.updatePoseName(id, name)
+        if (ok) refreshSavedPoses()
+        return ok
+    }
+
+    fun updatePoseMetadata(id: Long, metadata: String): Boolean {
+        val ok = poseStorage.updatePoseMetadata(id, metadata)
+        if (ok) refreshSavedPoses()
+        return ok
+    }
+
+    fun updatePoseLandmarks(id: Long, landmarksJson: String): Boolean {
+        val ok = poseStorage.updatePoseLandmarks(id, landmarksJson)
+        if (ok) refreshSavedPoses()
+        return ok
     }
 
     fun clearSavedPoses() {
@@ -107,6 +179,12 @@ class MainViewModel(
     fun reset() {
         uiState = HandUiState()
         currentHandPose = null
+    }
+
+    private fun serializeLandmarks(handPose: HandPoseData): String {
+        return handPose.landmarks.joinToString("|") { landmark ->
+            "${landmark.x},${landmark.y},${landmark.z}"
+        }
     }
 }
 

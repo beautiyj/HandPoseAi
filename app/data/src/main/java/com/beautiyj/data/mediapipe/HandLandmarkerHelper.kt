@@ -117,6 +117,10 @@ class HandLandmarkerHelper(
         handLandmarker?.detectAsync(mpImage, frameTime)
     }
 
+    fun detectImage(bitmap: Bitmap) {
+        detectLiveStream(bitmap)
+    }
+
     /**
      * 분석 결과 리턴 함수
      * 역할: 구글의 복잡한 원본 데이터를 우리 앱 전용 모델(HandPoseData)로 가공(Mapping)합니다.

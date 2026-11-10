@@ -34,6 +34,15 @@ class ExampleUnitTest {
         assertEquals(0f, result.confidence)
     }
 
+    @Test
+    fun `analyzePhoto_uses_same_logic_as_live_frame`() {
+        val liveResult = useCase.analyzeLiveFrame(listOf(buildHandPose(wristY = 0.8f, fingerTipOffset = -0.25f)))
+        val photoResult = useCase.analyzePhoto(listOf(buildHandPose(wristY = 0.8f, fingerTipOffset = -0.25f)))
+
+        assertEquals(liveResult.gestureName, photoResult.gestureName)
+        assertEquals(liveResult.confidence, photoResult.confidence, 0.01f)
+    }
+
     private fun buildHandPose(wristY: Float, fingerTipOffset: Float): HandPoseData {
         val landmarks = MutableList(21) { index ->
             val isFingerTip = index == 8 || index == 12 || index == 16 || index == 20
