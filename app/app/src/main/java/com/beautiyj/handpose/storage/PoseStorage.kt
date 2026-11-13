@@ -38,6 +38,7 @@ class PoseStorage(context: Context) {
     private val appContext = context.applicationContext
     private val legacyPrefs: SharedPreferences = appContext.getSharedPreferences("hand_pose_store", Context.MODE_PRIVATE)
     private val dbHelper = PoseDbHelper(appContext)
+    private val poseDao = PoseDatabase.getInstance(appContext).savedPoseDao()
 
     init {
         migrateLegacyDataIfNeeded()
@@ -68,7 +69,7 @@ class PoseStorage(context: Context) {
             trimmed
         }
 
-        dbHelper.insertPose(
+        val entity = SavedPoseEntity(
             name = finalName,
             gesture = gesture,
             confidence = confidence,
@@ -78,7 +79,8 @@ class PoseStorage(context: Context) {
             metadata = metadata,
             landmarksJson = landmarksJson
         )
-        return true
+        val insertedId = poseDao.insert(entity)
+        return insertedId > 0
     }
 
     fun updatePose(
@@ -91,25 +93,26 @@ class PoseStorage(context: Context) {
         thumbnail: String? = null,
         landmarksJson: String? = null
     ): Boolean {
-        return dbHelper.updatePose(
-            id = id,
-            name = name,
-            gesture = gesture,
-            confidence = confidence,
-            sourceType = sourceType?.value,
-            metadata = metadata,
-            thumbnail = thumbnail,
-            landmarksJson = landmarksJson
+        val current = poseDao.getById(id) ?: return false
+        val updatedEntity = current.copy(
+            name = name ?: current.name,
+            gesture = gesture ?: current.gesture,
+            confidence = confidence ?: current.confidence,
+            sourceType = sourceType?.value ?: current.sourceType,
+            metadata = metadata ?: current.metadata,
+            thumbnail = thumbnail ?: current.thumbnail,
+            landmarksJson = landmarksJson ?: current.landmarksJson
         )
+        return poseDao.update(updatedEntity) > 0
     }
 
     fun updatePoseName(id: Long, name: String): Boolean = updatePose(id, name = name)
     fun updatePoseMetadata(id: Long, metadata: String): Boolean = updatePose(id, metadata = metadata)
     fun updatePoseLandmarks(id: Long, landmarksJson: String): Boolean = updatePose(id, landmarksJson = landmarksJson)
 
-    fun deletePose(id: Long): Boolean = dbHelper.deletePose(id)
+    fun deletePose(id: Long): Boolean = poseDao.deleteById(id) > 0
 
-    fun loadPoses(): List<SavedPoseRecord> = dbHelper.queryPoses()
+    fun loadPoses(): List<SavedPoseRecord> = poseDao.getAll().map { it.toRecord() }
 
     fun loadPoses(
         query: String = "",
@@ -117,7 +120,7 @@ class PoseStorage(context: Context) {
         filterMode: PoseFilterMode = PoseFilterMode.ALL
     ): List<SavedPoseRecord> {
         val normalized = query.trim()
-        return dbHelper.queryPoses()
+        return poseDao.getAll().map { it.toRecord() }
             .filter { record ->
                 val matchesQuery = normalized.isEmpty() ||
                     record.name.contains(normalized, ignoreCase = true) ||
@@ -139,15 +142,14 @@ class PoseStorage(context: Context) {
     }
 
     fun clear() {
-        dbHelper.clearAll()
+        poseDao.clearAll()
         legacyPrefs.edit().remove(KEY_SAVED_POSES).apply()
     }
 
     fun loadLatestPose(): SavedPoseRecord? = loadPoses().firstOrNull()
 
     private fun migrateLegacyDataIfNeeded() {
-        val savedPoses = dbHelper.queryPoses()
-        if (savedPoses.isNotEmpty()) return
+        if (poseDao.count() > 0) return
 
         val raw = legacyPrefs.getString(KEY_SAVED_POSES, null) ?: return
         val legacyList = try {
@@ -162,15 +164,17 @@ class PoseStorage(context: Context) {
             val gesture = obj.optString("gesture", "Unknown")
             val confidence = obj.optDouble("confidence", 0.0).toFloat()
             val savedAt = obj.optLong("savedAt", Date().time)
-            dbHelper.insertPose(
-                name = name,
-                gesture = gesture,
-                confidence = confidence,
-                savedAt = savedAt,
-                sourceType = PoseSourceType.LIVE.value,
-                thumbnail = null,
-                metadata = "",
-                landmarksJson = null
+            poseDao.insert(
+                SavedPoseEntity(
+                    name = name,
+                    gesture = gesture,
+                    confidence = confidence,
+                    savedAt = savedAt,
+                    sourceType = PoseSourceType.LIVE.value,
+                    thumbnail = null,
+                    metadata = "",
+                    landmarksJson = null
+                )
             )
         }
     }

@@ -50,6 +50,7 @@ import com.beautiyj.handpose.storage.SavedPoseRecord
 import com.beautiyj.handpose.ui.CameraGuideOverlay
 import com.beautiyj.handpose.ui.CameraPreviewScreen
 import com.beautiyj.handpose.ui.HandPoseOverlay
+import com.beautiyj.handpose.ui.SavedPoseDetailScreen
 import com.beautiyj.handpose.ui.theme.HandPoseAiTheme
 import com.beautiyj.handpose.viewmodel.MainViewModel
 import java.io.ByteArrayOutputStream
@@ -72,7 +73,6 @@ class MainActivity : ComponentActivity() {
 
                 val filteredPoses = viewModel.savedPoses
                 val activePreviewPose = filteredPoses.firstOrNull { it.id == selectedPoseId } ?: filteredPoses.firstOrNull()
-                val selectedPreviewPose = activePreviewPose?.landmarksJson?.let { parseLandmarksJson(it) }
 
                 val photoHandLandmarker = remember {
                     com.beautiyj.data.mediapipe.HandLandmarkerHelper(
@@ -203,21 +203,22 @@ class MainActivity : ComponentActivity() {
                                 .padding(innerPadding)
                                 .background(Color.Black)
                         ) {
-                            if (selectedPoseId != null && selectedPreviewPose != null && activePreviewPose != null) {
-                                Box(modifier = Modifier.fillMaxSize()) {
-                                    HandPoseOverlay(
-                                        poseData = selectedPreviewPose,
-                                        gestureName = activePreviewPose.gesture,
-                                        modifier = Modifier.fillMaxSize(),
-                                        overlayLabel = "3D "
-                                    )
-                                    Text(
-                                        text = "저장 포즈: ${activePreviewPose.name}\n${activePreviewPose.gesture} · ${activePreviewPose.sourceType} · ${(activePreviewPose.confidence * 100).toInt()}%",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.align(Alignment.TopStart).padding(16.dp)
-                                    )
-                                }
+                            if (selectedPoseId != null && activePreviewPose != null) {
+                                SavedPoseDetailScreen(
+                                    pose = activePreviewPose,
+                                    onEdit = {
+                                        poseToEdit = activePreviewPose
+                                        editName = activePreviewPose.name
+                                        editMetadata = activePreviewPose.metadata
+                                    },
+                                    onDelete = {
+                                        poseToDelete = activePreviewPose
+                                    },
+                                    onClose = {
+                                        selectedPoseId = null
+                                    },
+                                    modifier = Modifier.fillMaxSize()
+                                )
                             } else if (selectedPhotoBitmap != null) {
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     Image(

@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import com.beautiyj.domain.model.HandPoseData
 import com.beautiyj.domain.model.Landmark
 import com.beautiyj.domain.usecase.AnalyzeHandUseCase
+import com.beautiyj.handpose.analysis.GestureFlowManager
 import com.beautiyj.handpose.storage.PoseFilterMode
 import com.beautiyj.handpose.storage.PoseSortMode
 import com.beautiyj.handpose.storage.PoseSourceType
@@ -18,6 +19,7 @@ class MainViewModel(
     private val analyzeHandUseCase: AnalyzeHandUseCase = AnalyzeHandUseCase()
 ) {
     private val poseStorage = PoseStorage(context)
+    private val gestureFlowManager = GestureFlowManager()
 
     var uiState by mutableStateOf(HandUiState())
         private set
@@ -67,20 +69,25 @@ class MainViewModel(
     }
 
     fun refreshSavedPoses() {
-        savedPoses = poseStorage.loadPoses(
+        val records = poseStorage.loadPoses(
             query = poseQuery,
             sortMode = poseSortMode,
             filterMode = poseFilterMode
+        )
+        savedPoses = gestureFlowManager.sortSavedPoses(
+            gestureFlowManager.filterSavedPoses(records, poseQuery, poseFilterMode),
+            poseSortMode
         )
     }
 
     fun analyzeCameraFrame(handPoses: List<HandPoseData>) {
         sourceType = PoseSourceType.LIVE
-        if (handPoses.isEmpty()) {
+        val result = gestureFlowManager.buildLiveDetectionResult(handPoses, analyzeHandUseCase)
+        if (!gestureFlowManager.validateLiveFrame(handPoses)) {
             uiState = uiState.copy(
-                gestureName = "손 인식 없음",
-                confidence = 0f,
-                description = "카메라에 손이 보이지 않습니다.",
+                gestureName = result.gestureName,
+                confidence = result.confidence,
+                description = result.description,
                 isProcessing = false
             )
             currentHandPose = null
@@ -88,7 +95,6 @@ class MainViewModel(
         }
 
         currentHandPose = handPoses.first()
-        val result = analyzeHandUseCase.analyzeLiveFrame(handPoses)
         uiState = uiState.copy(
             gestureName = result.gestureName,
             confidence = result.confidence,
@@ -99,18 +105,18 @@ class MainViewModel(
 
     fun analyzePhoto(handPoses: List<HandPoseData>) {
         sourceType = PoseSourceType.PHOTO
-        if (handPoses.isEmpty()) {
+        val result = gestureFlowManager.buildPhotoDetectionResult(handPoses, analyzeHandUseCase)
+        if (!gestureFlowManager.validatePhotoFrame(handPoses)) {
             uiState = uiState.copy(
-                gestureName = "사진 인식 실패",
-                confidence = 0f,
-                description = "이미지에서 손을 찾지 못했습니다.",
+                gestureName = result.gestureName,
+                confidence = result.confidence,
+                description = result.description,
                 isProcessing = false
             )
             return
         }
 
         currentHandPose = handPoses.first()
-        val result = analyzeHandUseCase.analyzePhoto(handPoses)
         uiState = uiState.copy(
             gestureName = result.gestureName,
             confidence = result.confidence,
@@ -121,24 +127,28 @@ class MainViewModel(
 
     fun saveCurrentPose(thumbnail: String? = null, metadata: String = ""): Boolean {
         val activeGesture = uiState.gestureName
-        if (activeGesture.isBlank() || activeGesture == "대기 중" || activeGesture == "손 인식 없음" || activeGesture == "감지 불가") {
+        if (!gestureFlowManager.canSavePose(activeGesture)) {
             return false
         }
 
-        val finalName = if (customPoseName.isBlank()) {
-            "Pose_${savedPoses.size + 1}"
-        } else {
-            customPoseName.trim()
-        }
-
-        val saved = poseStorage.savePose(
-            name = finalName,
-            gesture = activeGesture,
+        val payload = gestureFlowManager.buildPosePayload(
+            name = customPoseName,
+            gestureName = activeGesture,
             confidence = uiState.confidence,
             sourceType = sourceType,
-            thumbnail = thumbnail,
             metadata = metadata,
-            landmarksJson = currentHandPose?.let { serializeLandmarks(it) }
+            thumbnail = thumbnail,
+            poseData = currentHandPose
+        )
+
+        val saved = poseStorage.savePose(
+            name = gestureFlowManager.ensureSafeName(payload.finalName, savedPoses.size + 1),
+            gesture = payload.gestureName,
+            confidence = payload.confidence,
+            sourceType = payload.sourceType,
+            thumbnail = payload.thumbnail,
+            metadata = payload.metadata,
+            landmarksJson = payload.poseData?.let { serializeLandmarks(it) }
         )
         if (saved) {
             customPoseName = ""
