@@ -34,7 +34,7 @@ data class SavedPoseRecord(
     val landmarksJson: String? = null
 )
 
-class PoseStorage(context: Context) {
+class PoseStorage(context: Context) : PoseRepository {
     private val appContext = context.applicationContext
     private val legacyPrefs: SharedPreferences = appContext.getSharedPreferences("hand_pose_store", Context.MODE_PRIVATE)
     private val dbHelper = PoseDbHelper(appContext)
@@ -44,20 +44,20 @@ class PoseStorage(context: Context) {
         migrateLegacyDataIfNeeded()
     }
 
-    fun savePose(
+    override fun savePose(
         name: String,
         gesture: String,
         confidence: Float,
-        sourceType: PoseSourceType = PoseSourceType.LIVE,
-        thumbnail: String? = null,
-        metadata: String = "",
-        landmarksJson: String? = null
+        sourceType: PoseSourceType,
+        thumbnail: String?,
+        metadata: String,
+        landmarksJson: String?
     ): Boolean {
         val current = loadPoses()
-        if (current.size >= MAX_SAVED_POSES) {
+        if (current.size >= PoseRepository.MAX_SAVED_POSES) {
             val oldest = current.minByOrNull { it.savedAt }
             oldest?.let { deletePose(it.id) }
-            if (loadPoses().size >= MAX_SAVED_POSES) {
+            if (loadPoses().size >= PoseRepository.MAX_SAVED_POSES) {
                 return false
             }
         }
@@ -83,15 +83,15 @@ class PoseStorage(context: Context) {
         return insertedId > 0
     }
 
-    fun updatePose(
+    override fun updatePose(
         id: Long,
-        name: String? = null,
-        gesture: String? = null,
-        confidence: Float? = null,
-        sourceType: PoseSourceType? = null,
-        metadata: String? = null,
-        thumbnail: String? = null,
-        landmarksJson: String? = null
+        name: String?,
+        gesture: String?,
+        confidence: Float?,
+        sourceType: PoseSourceType?,
+        metadata: String?,
+        thumbnail: String?,
+        landmarksJson: String?
     ): Boolean {
         val current = poseDao.getById(id) ?: return false
         val updatedEntity = current.copy(
@@ -106,18 +106,18 @@ class PoseStorage(context: Context) {
         return poseDao.update(updatedEntity) > 0
     }
 
-    fun updatePoseName(id: Long, name: String): Boolean = updatePose(id, name = name)
-    fun updatePoseMetadata(id: Long, metadata: String): Boolean = updatePose(id, metadata = metadata)
-    fun updatePoseLandmarks(id: Long, landmarksJson: String): Boolean = updatePose(id, landmarksJson = landmarksJson)
+    override fun updatePoseName(id: Long, name: String): Boolean = updatePose(id, name = name)
+    override fun updatePoseMetadata(id: Long, metadata: String): Boolean = updatePose(id, metadata = metadata)
+    override fun updatePoseLandmarks(id: Long, landmarksJson: String): Boolean = updatePose(id, landmarksJson = landmarksJson)
 
-    fun deletePose(id: Long): Boolean = poseDao.deleteById(id) > 0
+    override fun deletePose(id: Long): Boolean = poseDao.deleteById(id) > 0
 
     fun loadPoses(): List<SavedPoseRecord> = poseDao.getAll().map { it.toRecord() }
 
-    fun loadPoses(
-        query: String = "",
-        sortMode: PoseSortMode = PoseSortMode.LATEST,
-        filterMode: PoseFilterMode = PoseFilterMode.ALL
+    override fun loadPoses(
+        query: String,
+        sortMode: PoseSortMode,
+        filterMode: PoseFilterMode
     ): List<SavedPoseRecord> {
         val normalized = query.trim()
         return poseDao.getAll().map { it.toRecord() }
@@ -141,12 +141,12 @@ class PoseStorage(context: Context) {
             }
     }
 
-    fun clear() {
+    override fun clear() {
         poseDao.clearAll()
         legacyPrefs.edit().remove(KEY_SAVED_POSES).apply()
     }
 
-    fun loadLatestPose(): SavedPoseRecord? = loadPoses().firstOrNull()
+    override fun loadLatestPose(): SavedPoseRecord? = loadPoses().firstOrNull()
 
     private fun migrateLegacyDataIfNeeded() {
         if (poseDao.count() > 0) return
@@ -181,6 +181,5 @@ class PoseStorage(context: Context) {
 
     companion object {
         private const val KEY_SAVED_POSES = "saved_poses"
-        const val MAX_SAVED_POSES = 100
     }
 }

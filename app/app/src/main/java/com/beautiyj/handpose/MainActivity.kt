@@ -250,6 +250,11 @@ class MainActivity : ComponentActivity() {
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold
                                 )
+                                Text(
+                                    text = "영상 모드: ${viewModel.videoCaptureStatus} · 샘플: ${viewModel.sampledVideoFrameCount}",
+                                    color = Color(0xFF7DD3FC),
+                                    fontWeight = FontWeight.Bold
+                                )
 
                                 OutlinedTextField(
                                     value = viewModel.customPoseName,
@@ -270,6 +275,17 @@ class MainActivity : ComponentActivity() {
                                     }
                                     Button(onClick = { galleryLauncher.launch("image/*") }) { Text("갤러리") }
                                     Button(onClick = { takePhotoLauncher.launch(null) }) { Text("촬영") }
+                                }
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(onClick = {
+                                        viewModel.startVideoClipCapture(10)
+                                        Toast.makeText(this@MainActivity, "10초 영상 클립 샘플링을 시작합니다.", Toast.LENGTH_SHORT).show()
+                                    }) { Text("10초 영상") }
+                                    Button(onClick = {
+                                        viewModel.completeVideoClipCapture(10)
+                                        Toast.makeText(this@MainActivity, "영상 클립 분석 준비가 완료되었습니다.", Toast.LENGTH_SHORT).show()
+                                    }) { Text("영상 종료") }
                                 }
 
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

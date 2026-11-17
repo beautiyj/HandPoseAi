@@ -78,62 +78,85 @@ fun SavedPoseDetailScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xCC111827))
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = pose.name,
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "인식 결과: ${pose.gesture} · ${(pose.confidence * 100).toInt()}%",
-                    color = Color(0xFFE2E8F0)
-                )
-                Text(
-                    text = "소스: ${pose.sourceType} · ${DateFormat.format("yyyy-MM-dd HH:mm", pose.savedAt)}",
-                    color = Color(0xFFCBD5E1)
-                )
-                if (pose.metadata.isNotBlank()) {
-                    Text(
-                        text = "메모: ${pose.metadata}",
-                        color = Color(0xFF93C5FD)
-                    )
-                }
-            }
+            PoseInfoCard(pose = pose)
+            PoseActionRow(
+                showOriginal = showOriginal,
+                hasOriginalThumb = thumbnailBitmap != null,
+                onToggleOriginal = { showOriginal = !showOriginal },
+                onEdit = onEdit,
+                onDelete = onDelete,
+                onClose = onClose
+            )
+        }
+    }
+}
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+@Composable
+private fun PoseInfoCard(pose: SavedPoseRecord) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xCC111827))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            text = pose.name,
+            color = Color.White,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "인식 결과: ${pose.gesture} · ${(pose.confidence * 100).toInt()}%",
+            color = Color(0xFFE2E8F0)
+        )
+        Text(
+            text = "소스: ${pose.sourceType} · ${DateFormat.format("yyyy-MM-dd HH:mm", pose.savedAt)}",
+            color = Color(0xFFCBD5E1)
+        )
+        if (pose.metadata.isNotBlank()) {
+            Text(
+                text = "메모: ${pose.metadata}",
+                color = Color(0xFF93C5FD)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PoseActionRow(
+    showOriginal: Boolean,
+    hasOriginalThumb: Boolean,
+    onToggleOriginal: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onClose: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        val baseModifier = Modifier.weight(1f)
+        if (hasOriginalThumb) {
+            Button(
+                onClick = onToggleOriginal,
+                modifier = baseModifier
             ) {
-                val baseModifier = Modifier.weight(1f)
-                if (thumbnailBitmap != null) {
-                    Button(
-                        onClick = { showOriginal = !showOriginal },
-                        modifier = baseModifier
-                    ) {
-                        Text(if (showOriginal) "3D 보기" else "원본+오버레이")
-                    }
-                }
-                TextButton(
-                    onClick = onEdit,
-                    modifier = baseModifier
-                ) { Text("수정") }
-                TextButton(
-                    onClick = onDelete,
-                    modifier = baseModifier
-                ) { Text("삭제") }
-                TextButton(
-                    onClick = onClose,
-                    modifier = baseModifier
-                ) { Text("닫기") }
+                Text(if (showOriginal) "3D 보기" else "원본+오버레이")
             }
         }
+        TextButton(
+            onClick = onEdit,
+            modifier = baseModifier
+        ) { Text("수정") }
+        TextButton(
+            onClick = onDelete,
+            modifier = baseModifier
+        ) { Text("삭제") }
+        TextButton(
+            onClick = onClose,
+            modifier = baseModifier
+        ) { Text("닫기") }
     }
 }
 

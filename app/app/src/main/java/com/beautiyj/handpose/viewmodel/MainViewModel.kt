@@ -9,17 +9,21 @@ import com.beautiyj.domain.model.Landmark
 import com.beautiyj.domain.usecase.AnalyzeHandUseCase
 import com.beautiyj.handpose.analysis.GestureFlowManager
 import com.beautiyj.handpose.storage.PoseFilterMode
+import com.beautiyj.handpose.storage.PoseRepository
 import com.beautiyj.handpose.storage.PoseSortMode
 import com.beautiyj.handpose.storage.PoseSourceType
 import com.beautiyj.handpose.storage.PoseStorage
 import com.beautiyj.handpose.storage.SavedPoseRecord
+import com.beautiyj.handpose.video.GestureVideoCaptureManager
 
 class MainViewModel(
     context: Context,
+    private val poseRepository: PoseRepository = PoseStorage(context),
+    private val gestureFlowManager: GestureFlowManager = GestureFlowManager(),
+    private val gestureVideoCaptureManager: GestureVideoCaptureManager = GestureVideoCaptureManager(),
     private val analyzeHandUseCase: AnalyzeHandUseCase = AnalyzeHandUseCase()
 ) {
-    private val poseStorage = PoseStorage(context)
-    private val gestureFlowManager = GestureFlowManager()
+    private val poseStorage = poseRepository
 
     var uiState by mutableStateOf(HandUiState())
         private set
@@ -43,6 +47,15 @@ class MainViewModel(
         private set
 
     var sourceType by mutableStateOf(PoseSourceType.LIVE)
+        private set
+
+    var videoCaptureStatus by mutableStateOf("대기 중")
+        private set
+
+    var videoCaptureActive by mutableStateOf(false)
+        private set
+
+    var sampledVideoFrameCount by mutableStateOf(0)
         private set
 
     init {
@@ -95,6 +108,7 @@ class MainViewModel(
         }
 
         currentHandPose = handPoses.first()
+        recordVideoSampleIfNeeded(currentHandPose)
         uiState = uiState.copy(
             gestureName = result.gestureName,
             confidence = result.confidence,
@@ -184,6 +198,32 @@ class MainViewModel(
     fun clearSavedPoses() {
         poseStorage.clear()
         refreshSavedPoses()
+    }
+
+    fun startVideoClipCapture(durationSeconds: Int = 10) {
+        gestureVideoCaptureManager.beginClip()
+        videoCaptureActive = true
+        sampledVideoFrameCount = 0
+        videoCaptureStatus = "${durationSeconds}초 영상 클립 수집 시작"
+    }
+
+    fun completeVideoClipCapture(durationSeconds: Int = 10) {
+        val clip = gestureVideoCaptureManager.endClip()
+        val summary = gestureVideoCaptureManager.summarizeRecordedSamples()
+        videoCaptureActive = false
+        sampledVideoFrameCount = clip.sampleCount
+        videoCaptureStatus = "${durationSeconds}초 영상 클립 처리 완료 · ${summary.dominantGesture} (${(summary.averageConfidence * 100).toInt()}%)"
+    }
+
+    fun recordVideoSampleIfNeeded(handPose: HandPoseData?) {
+        if (!videoCaptureActive || handPose == null) return
+        val result = analyzeHandUseCase.analyzeLiveFrame(listOf(handPose))
+        gestureVideoCaptureManager.recordSample(
+            gestureName = result.gestureName,
+            confidence = result.confidence,
+            timestampMs = System.currentTimeMillis()
+        )
+        sampledVideoFrameCount = gestureVideoCaptureManager.recordedSamples().size
     }
 
     fun reset() {
