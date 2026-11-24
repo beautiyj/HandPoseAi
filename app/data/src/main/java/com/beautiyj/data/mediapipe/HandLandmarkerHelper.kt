@@ -117,8 +117,37 @@ class HandLandmarkerHelper(
         handLandmarker?.detectAsync(mpImage, frameTime)
     }
 
-    fun detectImage(bitmap: Bitmap) {
-        detectLiveStream(bitmap)
+    fun detectImage(bitmap: Bitmap): List<HandPoseData> {
+        if (runningMode == RunningMode.LIVE_STREAM) {
+            detectLiveStream(bitmap)
+            return emptyList()
+        }
+
+        val mpImage = BitmapImageBuilder(bitmap).build()
+        val result = handLandmarker?.detect(mpImage) ?: return emptyList()
+        return result.landmarks().mapIndexed { index, landmarks ->
+            val handedness = result.handedness().getOrNull(index)?.firstOrNull()
+            HandPoseData(
+                landmarks = landmarks.map { Landmark(it.x(), it.y(), it.z()) },
+                handedness = handedness?.categoryName() ?: "Unknown",
+                score = handedness?.score() ?: 0f
+            )
+        }
+    }
+
+    fun detectVideoFrame(bitmap: Bitmap, timestampMs: Long): List<HandPoseData> {
+        if (runningMode != RunningMode.VIDEO) return emptyList()
+
+        val mpImage = BitmapImageBuilder(bitmap).build()
+        val result = handLandmarker?.detectForVideo(mpImage, timestampMs) ?: return emptyList()
+        return result.landmarks().mapIndexed { index, landmarks ->
+            val handedness = result.handedness().getOrNull(index)?.firstOrNull()
+            HandPoseData(
+                landmarks = landmarks.map { Landmark(it.x(), it.y(), it.z()) },
+                handedness = handedness?.categoryName() ?: "Unknown",
+                score = handedness?.score() ?: 0f
+            )
+        }
     }
 
     /**
@@ -159,6 +188,14 @@ class HandLandmarkerHelper(
     접미어(Suffix): 어떤 성격/확장자인가? (예: PATH, URL, ID, TASK)
      */
     companion object {
+        fun forVideo(context: Context): HandLandmarkerHelper {
+            return HandLandmarkerHelper(
+                context = context,
+                runningMode = RunningMode.VIDEO,
+                listener = null
+            )
+        }
+
         private const val MP_HAND_LANDMARKER_TASK = "hand_landmarker.task"
         private const val TAG = "HandLandmarkerHelper"
 
