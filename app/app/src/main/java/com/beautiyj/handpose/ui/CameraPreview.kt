@@ -116,6 +116,11 @@ fun CameraPreviewScreen(viewModel: MainViewModel) {
 
         CameraGuideOverlay()
 
+        HandFilamentView(
+            poseData = viewModel.currentHandPose,
+            modifier = Modifier.fillMaxSize()
+        )
+
         HandPoseOverlay(
             poseData = viewModel.currentHandPose,
             gestureName = viewModel.uiState.gestureName,

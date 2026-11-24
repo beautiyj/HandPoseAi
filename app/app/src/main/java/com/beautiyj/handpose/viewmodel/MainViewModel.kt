@@ -1,6 +1,9 @@
 package com.beautiyj.handpose.viewmodel
 
 import android.content.Context
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -15,13 +18,20 @@ import com.beautiyj.handpose.storage.PoseSourceType
 import com.beautiyj.handpose.storage.PoseStorage
 import com.beautiyj.handpose.storage.SavedPoseRecord
 import com.beautiyj.handpose.video.GestureVideoCaptureManager
+import com.beautiyj.handpose.video.VideoGestureAnalysisResult
+import com.beautiyj.handpose.video.VideoGestureAnalyzer
+import com.beautiyj.handpose.video.VideoFrameDiagnostics
+import com.beautiyj.handpose.video.VideoAnalysisRepository
+import com.beautiyj.handpose.video.VideoAnalysisRepositoryImpl
+import java.util.concurrent.Executors
 
 class MainViewModel(
-    context: Context,
+    private val context: Context,
     private val poseRepository: PoseRepository = PoseStorage(context),
     private val gestureFlowManager: GestureFlowManager = GestureFlowManager(),
     private val gestureVideoCaptureManager: GestureVideoCaptureManager = GestureVideoCaptureManager(),
-    private val analyzeHandUseCase: AnalyzeHandUseCase = AnalyzeHandUseCase()
+    private val analyzeHandUseCase: AnalyzeHandUseCase = AnalyzeHandUseCase(),
+    private val videoAnalysisRepository: VideoAnalysisRepository = VideoAnalysisRepositoryImpl(context)
 ) {
     private val poseStorage = poseRepository
 
@@ -56,6 +66,21 @@ class MainViewModel(
         private set
 
     var sampledVideoFrameCount by mutableStateOf(0)
+        private set
+
+    var videoAnalysisProgress by mutableStateOf(0)
+        private set
+
+    var videoAnalysisResult by mutableStateOf<VideoGestureAnalysisResult?>(null)
+        private set
+
+    var selectedVideoUri by mutableStateOf<Uri?>(null)
+        private set
+
+    private val videoExecutor = Executors.newSingleThreadExecutor()
+    private val videoFrameDiagnostics = VideoFrameDiagnostics()
+
+    var videoDiagnosticLabel by mutableStateOf("진단 대기")
         private set
 
     init {
@@ -224,6 +249,37 @@ class MainViewModel(
             timestampMs = System.currentTimeMillis()
         )
         sampledVideoFrameCount = gestureVideoCaptureManager.recordedSamples().size
+    }
+
+    fun analyzeUploadedVideo(uri: Uri) {
+        selectedVideoUri = uri
+        videoAnalysisProgress = 0
+        videoAnalysisResult = null
+        videoCaptureStatus = "영상 프레임 분석 중"
+
+        videoExecutor.execute {
+            try {
+                val result = videoAnalysisRepository.analyze(
+                    uri = uri,
+                    onProgress = { progress ->
+                        Handler(Looper.getMainLooper()).post {
+                            videoAnalysisProgress = progress
+                        }
+                    }
+                )
+                Handler(Looper.getMainLooper()).post {
+                    videoAnalysisResult = result
+                    sampledVideoFrameCount = result.frames.size
+                    repeat(result.frames.size.coerceAtMost(50)) { videoFrameDiagnostics.recordFrame() }
+                    videoDiagnosticLabel = videoFrameDiagnostics.snapshot(640, 360).displayLabel()
+                    videoCaptureStatus = "영상 분석 완료 · ${result.dominantGesture} (${(result.averageConfidence * 100).toInt()}%)"
+                }
+            } catch (_: Exception) {
+                Handler(Looper.getMainLooper()).post {
+                    videoCaptureStatus = "영상 분석 실패"
+                }
+            }
+        }
     }
 
     fun reset() {

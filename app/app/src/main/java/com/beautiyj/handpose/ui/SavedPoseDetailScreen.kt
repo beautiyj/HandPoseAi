@@ -63,6 +63,10 @@ fun SavedPoseDetailScreen(
                 )
             }
         } else if (poseData != null) {
+            HandFilamentView(
+                poseData = poseData,
+                modifier = Modifier.fillMaxSize()
+            )
             HandPoseOverlay(
                 poseData = poseData,
                 gestureName = pose.gesture,

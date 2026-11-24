@@ -51,6 +51,8 @@ import com.beautiyj.handpose.ui.CameraGuideOverlay
 import com.beautiyj.handpose.ui.CameraPreviewScreen
 import com.beautiyj.handpose.ui.HandPoseOverlay
 import com.beautiyj.handpose.ui.SavedPoseDetailScreen
+import com.beautiyj.handpose.ui.ShortVideoRecorderScreen
+import com.beautiyj.handpose.ui.VideoGesturePlayback
 import com.beautiyj.handpose.ui.theme.HandPoseAiTheme
 import com.beautiyj.handpose.viewmodel.MainViewModel
 import java.io.ByteArrayOutputStream
@@ -70,6 +72,7 @@ class MainActivity : ComponentActivity() {
                 var editName by remember { mutableStateOf("") }
                 var editMetadata by remember { mutableStateOf("") }
                 var hasCameraPermission by remember { mutableStateOf(false) }
+                var showShortVideoRecorder by remember { mutableStateOf(false) }
 
                 val filteredPoses = viewModel.savedPoses
                 val activePreviewPose = filteredPoses.firstOrNull { it.id == selectedPoseId } ?: filteredPoses.firstOrNull()
@@ -116,6 +119,14 @@ class MainActivity : ComponentActivity() {
                                 viewModel.analyzePhoto(emptyList())
                             }
                         } ?: run { viewModel.analyzePhoto(emptyList()) }
+                    }
+                }
+
+                val videoLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.GetContent()
+                ) { uri ->
+                    if (uri != null) {
+                        viewModel.analyzeUploadedVideo(uri)
                     }
                 }
 
@@ -219,6 +230,21 @@ class MainActivity : ComponentActivity() {
                                     },
                                     modifier = Modifier.fillMaxSize()
                                 )
+                            } else if (showShortVideoRecorder) {
+                                ShortVideoRecorderScreen(
+                                    onFinished = { uri ->
+                                        showShortVideoRecorder = false
+                                        viewModel.analyzeUploadedVideo(uri)
+                                    },
+                                    onClose = { showShortVideoRecorder = false },
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else if (viewModel.videoAnalysisResult != null && viewModel.selectedVideoUri != null) {
+                                VideoGesturePlayback(
+                                    uriString = viewModel.selectedVideoUri.toString(),
+                                    result = viewModel.videoAnalysisResult!!,
+                                    modifier = Modifier.fillMaxSize()
+                                )
                             } else if (selectedPhotoBitmap != null) {
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     Image(
@@ -255,6 +281,10 @@ class MainActivity : ComponentActivity() {
                                     color = Color(0xFF7DD3FC),
                                     fontWeight = FontWeight.Bold
                                 )
+                                Text(
+                                    text = viewModel.videoDiagnosticLabel,
+                                    color = Color(0xFFCBD5E1)
+                                )
 
                                 OutlinedTextField(
                                     value = viewModel.customPoseName,
@@ -275,6 +305,8 @@ class MainActivity : ComponentActivity() {
                                     }
                                     Button(onClick = { galleryLauncher.launch("image/*") }) { Text("갤러리") }
                                     Button(onClick = { takePhotoLauncher.launch(null) }) { Text("촬영") }
+                                    Button(onClick = { videoLauncher.launch("video/*") }) { Text("영상 업로드") }
+                                    Button(onClick = { showShortVideoRecorder = true }) { Text("10초 녹화") }
                                 }
 
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
